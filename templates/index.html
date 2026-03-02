@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISP Recharge History — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Theme (matches breach_tracker) ────────────────────────── */
+:root {
+  --pink:       #E8235A;
+  --pink-dark:  #C01847;
+  --pink-light: #FDE8EF;
+  --pink-mid:   #F9B8CE;
+  --white:      #FFFFFF;
+  --bg:         #F7F7F8;
+  --card:       #FFFFFF;
+  --border:     #EBEBEB;
+  --text:       #1A1A1A;
+  --text-2:     #555;
+  --text-3:     #888;
+  --success:    #10B981;
+  --warning:    #F59E0B;
+  --info:       #3B82F6;
+  --purple:     #8B5CF6;
+  --radius:     10px;
+  --shadow:     0 1px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: var(--pink);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 800; font-size: 15px;
+}
+.logo-text { font-size: 15px; font-weight: 700; }
+.logo-text span { color: var(--text-3); font-weight: 400; margin-left: 6px; }
+
+/* ── Main ──────────────────────────────────────────────────── */
+main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+/* ── Search Card ───────────────────────────────────────────── */
+.search-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.search-card h2 {
+  font-size: 16px; font-weight: 700; margin-bottom: 16px;
+}
+.search-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fg label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+.fg input {
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  font-family: inherit; font-size: 13px;
+  background: white; outline: none;
+}
+.fg input:focus { border-color: var(--pink); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 9px 20px; border-radius: 7px;
+  border: none; font-family: inherit; font-size: 13px;
+  font-weight: 600; cursor: pointer; transition: all .15s;
+  height: 38px;
+}
+.btn-primary { background: var(--pink); color: white; }
+.btn-primary:hover:not(:disabled) { background: var(--pink-dark); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-outline {
+  background: white; color: var(--text);
+  border: 1.5px solid var(--border);
+}
+.btn-outline:hover { border-color: var(--pink); color: var(--pink); }
+
+/* ── States ────────────────────────────────────────────────── */
+.state-empty, .state-loading, .state-error {
+  text-align: center; padding: 60px 20px;
+}
+.state-empty svg, .state-loading svg, .state-error svg {
+  width: 48px; height: 48px; margin-bottom: 12px; color: var(--text-3);
+}
+.state-empty h3, .state-loading h3, .state-error h3 {
+  font-size: 15px; font-weight: 600; margin-bottom: 6px;
+}
+.state-empty p, .state-loading p, .state-error p {
+  font-size: 13px; color: var(--text-3);
+}
+.state-error h3 { color: #EF4444; }
+.state-error p { color: #EF4444; }
+
+/* spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--border);
+  border-top-color: var(--pink); border-radius: 50%;
+  animation: spin .7s linear infinite;
+  margin: 0 auto 12px;
+}
+
+/* ── Results ───────────────────────────────────────────────── */
+.results-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.results-header h3 { font-size: 14px; font-weight: 700; }
+.results-header .count {
+  font-size: 12px; color: var(--text-3); font-weight: 500;
+}
+
+.table-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead { background: #FAFAFA; }
+th {
+  padding: 10px 14px; text-align: left;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  color: var(--text-3); white-space: nowrap;
+}
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #F4F4F5;
+  font-size: 13px; white-space: nowrap;
+}
+tbody tr:hover { background: #FAFAFA; }
+
+/* Future ISP ticket highlight */
+tr.future-ticket {
+  background: #EFF6FF;
+}
+tr.future-ticket:hover { background: #DBEAFE; }
+.badge {
+  display: inline-block; padding: 2px 8px;
+  border-radius: 5px; font-size: 11px; font-weight: 600;
+}
+.badge-future { background: #DBEAFE; color: #1E40AF; }
+.badge-active { background: #D1FAE5; color: #065F46; }
+.badge-expired { background: #F3F4F6; color: #6B7280; }
+.badge-na { background: #F9FAFB; color: #9CA3AF; }
+.badge-yes { background: #D1FAE5; color: #065F46; }
+.badge-no { background: #FEF3C7; color: #92400E; }
+
+/* ── Toast ─────────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+  background: var(--text); color: white;
+  padding: 11px 18px; border-radius: 9px;
+  font-size: 13px; font-weight: 500;
+  opacity: 0; transform: translateY(8px);
+  transition: all .25s; pointer-events: none;
+}
+#toast.show { opacity: 1; transform: none; }
+#toast.error { background: #EF4444; }
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  main { padding: 16px 12px; }
+  .search-card { padding: 16px; }
+  .search-form { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo-icon">R</div>
+  <div class="logo-text">ISP Recharge History<span>PTL Dashboard</span></div>
+</header>
+
+<!-- Main -->
+<main>
+
+  <!-- Search -->
+  <div class="search-card">
+    <h2>Customer Lookup</h2>
+    <form class="search-form" id="searchForm" onsubmit="doSearch(event)">
+      <div class="fg">
+        <label for="mobile">Mobile Number</label>
+        <input type="text" id="mobile" placeholder="e.g. 9876543210" inputmode="numeric">
+      </div>
+      <div class="fg">
+        <label for="nas_id">NAS ID</label>
+        <input type="text" id="nas_id" placeholder="e.g. 12345" inputmode="numeric">
+      </div>
+      <div class="fg">
+        <label for="account_id">Customer Account ID</label>
+        <input type="text" id="account_id" placeholder="e.g. 67890" inputmode="numeric">
+      </div>
+      <div style="display:flex;gap:8px;align-items:end;">
+        <button type="submit" class="btn btn-primary" id="searchBtn">Search</button>
+        <button type="button" class="btn btn-outline" onclick="clearForm()">Clear</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Results area -->
+  <div id="resultsArea">
+    <!-- Empty state (default) -->
+    <div id="stateEmpty" class="state-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 21l-5.2-5.2M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <h3>Search for a customer</h3>
+      <p>Enter a Mobile Number, NAS ID, or Account ID to look up recharge history</p>
+    </div>
+
+    <!-- Loading state -->
+    <div id="stateLoading" class="state-loading" style="display:none;">
+      <div class="spinner"></div>
+      <h3>Looking up recharge history...</h3>
+      <p>Querying Snowflake via Metabase</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="stateError" class="state-error" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <h3>Something went wrong</h3>
+      <p id="errorMsg"></p>
+    </div>
+
+    <!-- Results -->
+    <div id="stateResults" style="display:none;">
+      <div class="results-header">
+        <h3>Recharge History</h3>
+        <span class="count" id="resultCount"></span>
+      </div>
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Transaction ID</th>
+                <th>Recharge Timestamp</th>
+                <th>Duration</th>
+                <th>Amount</th>
+                <th>ISP Ticket ID</th>
+                <th>ISP Start Date</th>
+                <th>ISP Expiry Date</th>
+                <th>ISP Ticket Status</th>
+                <th>ISP Request Status</th>
+                <th>Ticket Updated</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+function showState(name) {
+  ['stateEmpty','stateLoading','stateError','stateResults'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('state' + name.charAt(0).toUpperCase() + name.slice(1)).style.display = '';
+}
+
+function toast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type === 'error' ? 'show error' : 'show';
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.className = '', 3000);
+}
+
+function clearForm() {
+  document.getElementById('mobile').value = '';
+  document.getElementById('nas_id').value = '';
+  document.getElementById('account_id').value = '';
+  showState('empty');
+}
+
+function formatDuration(sec) {
+  if (!sec && sec !== 0) return '—';
+  const days = Math.round(Number(sec) / 86400);
+  if (days >= 1) return days + 'd';
+  const hrs = Math.round(Number(sec) / 3600);
+  return hrs + 'h';
+}
+
+function formatDate(val) {
+  if (!val) return '—';
+  try {
+    const d = new Date(val);
+    if (isNaN(d)) return val;
+    return d.toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    }) + ' ' + d.toLocaleTimeString('en-IN', {
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+  } catch { return val; }
+}
+
+function ticketStatusBadge(status, isFuture) {
+  if (!status) return '<span class="badge badge-na">No Ticket</span>';
+  if (isFuture) return '<span class="badge badge-future">Upcoming</span>';
+  const s = String(status).toUpperCase();
+  if (s === 'COMPLETED' || s === 'ACTIVE' || s === 'SUCCESS')
+    return '<span class="badge badge-active">' + status + '</span>';
+  if (s === 'EXPIRED')
+    return '<span class="badge badge-expired">' + status + '</span>';
+  return '<span class="badge">' + status + '</span>';
+}
+
+function rowTypeBadge(row) {
+  if (row.IS_FUTURE_TICKET === 1 || row.IS_FUTURE_TICKET === true)
+    return '<span class="badge badge-future">UPCOMING</span>';
+  return '';
+}
+
+async function doSearch(e) {
+  e.preventDefault();
+  const mobile = document.getElementById('mobile').value.trim();
+  const nas_id = document.getElementById('nas_id').value.trim();
+  const account_id = document.getElementById('account_id').value.trim();
+
+  if (!mobile && !nas_id && !account_id) {
+    toast('Enter at least one search field', 'error');
+    return;
+  }
+
+  showState('loading');
+  document.getElementById('searchBtn').disabled = true;
+
+  try {
+    const resp = await fetch('/api/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobile, nas_id, account_id })
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      showState('error');
+      document.getElementById('errorMsg').textContent = data.error || 'Unknown error';
+      return;
+    }
+
+    if (!data.rows || data.rows.length === 0) {
+      showState('error');
+      document.getElementById('errorMsg').textContent = 'No recharge records found for this customer.';
+      return;
+    }
+
+    renderResults(data.rows, data.count);
+    showState('results');
+  } catch (err) {
+    showState('error');
+    document.getElementById('errorMsg').textContent = err.message;
+  } finally {
+    document.getElementById('searchBtn').disabled = false;
+  }
+}
+
+function renderResults(rows, count) {
+  document.getElementById('resultCount').textContent = count + ' record' + (count !== 1 ? 's' : '');
+  const tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+
+  rows.forEach(r => {
+    const isFuture = r.IS_FUTURE_TICKET === 1 || r.IS_FUTURE_TICKET === true;
+    const tr = document.createElement('tr');
+    if (isFuture) tr.className = 'future-ticket';
+
+    tr.innerHTML = `
+      <td>${rowTypeBadge(r)}</td>
+      <td style="font-weight:600;">${r.TRANSACTION_ID || '—'}</td>
+      <td>${formatDate(r.RECHARGE_TIMESTAMP)}</td>
+      <td>${formatDuration(r.RECHARGE_DURATION_SEC)}</td>
+      <td>${r.RECHARGE_AMOUNT != null ? '₹' + r.RECHARGE_AMOUNT : '—'}</td>
+      <td style="font-weight:600;">${r.ISP_TICKET_ID || '—'}</td>
+      <td>${formatDate(r.ISP_START_DATE)}</td>
+      <td>${formatDate(r.ISP_EXPIRY_DATE)}</td>
+      <td>${ticketStatusBadge(r.ISP_TICKET_STATUS, isFuture)}</td>
+      <td>${r.ISP_REQUEST_STATUS || '—'}</td>
+      <td>${formatDate(r.ISP_TICKET_SHOWN_DATE)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Allow Enter key on inputs to trigger search
+document.querySelectorAll('#searchForm input').forEach(inp => {
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch(e);
+  });
+});
+</script>
+</body>
+</html>
