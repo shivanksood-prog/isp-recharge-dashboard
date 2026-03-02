@@ -296,9 +296,7 @@ tr.future-ticket:hover { background: #DBEAFE; }
 
 <script>
 /* ── Metabase config ─────────────────────────────────────────── */
-const METABASE_URL_RAW = 'https://metabase.wiom.in';
-const CORS_PROXY = 'https://corsproxy.io/?url=';
-const METABASE_URL = CORS_PROXY + encodeURIComponent(METABASE_URL_RAW);
+const PROXY_URL = 'https://metabase-proxy.shivank-sood.workers.dev';
 const METABASE_API_KEY = 'mb_XPG56dRucXiZ6CG958t9UBV1Y4r1/DY4l7WcsFUD5w4=';
 const METABASE_DB_ID = 113;
 
@@ -382,8 +380,7 @@ LIMIT 20`;
 
 /* ── Metabase query runner ───────────────────────────────────── */
 async function queryMetabase(sql) {
-  const apiUrl = CORS_PROXY + encodeURIComponent(METABASE_URL_RAW + '/api/dataset');
-  const resp = await fetch(apiUrl, {
+  const resp = await fetch(PROXY_URL + '/api/dataset', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
